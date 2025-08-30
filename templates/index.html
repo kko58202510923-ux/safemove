@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>모드 선택</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 16px;
+            max-width: 400px;
+            margin: 40px auto;
+            background-color: #f7f7f7;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        button {
+            width: 100%;
+            padding: 12px 0;
+            margin: 10px 0;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        p {
+            font-size: 14px;
+            color: #555555;
+            margin-top: 30px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<h1>모드를 선택하세요</h1>
+
+<button onclick="location.href='{{ url_for('pedestrian') }}'">보행자 모드</button>
+<button onclick="location.href='{{ url_for('driver') }}'">운전자 모드</button>
+
+<p>자전거나 전동 킥보드 같은 개인형 이동장치는 운전자 모드를 선택해 주세요.</p>
+
+</body>
+</html>
