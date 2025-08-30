@@ -2,30 +2,92 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>보행자 모드</title>
+  <title>보행자 모드 - 자신의 아이디 및 위치 전송</title>
 </head>
 <body>
-  <h1>보행자 모드 - 운전자 위치 보기</h1>
-  <p id="location">위치 데이터를 불러오는 중...</p>
+  <h1>보행자 모드</h1>
+
+  <p>내 사용자 ID: <strong id="user-id">{{ user_id }}</strong></p>
+  <p>내 위치 전송 상태: <span id="send-status">대기중</span></p>
+
+  <h2>접속한 모든 운전자 위치</h2>
+  <table border="1" style="width:100%; border-collapse: collapse;">
+    <thead>
+      <tr><th>운전자 ID</th><th>위도</th><th>경도</th></tr>
+    </thead>
+    <tbody id="location-table-body">
+      <tr><td colspan="3">데이터 불러오는 중...</td></tr>
+    </tbody>
+  </table>
 
   <script>
-    function fetchDriverLocation() {
-      fetch('/get_location')
-        .then(response => {
-          if (!response.ok) throw new Error('위치 데이터 없음');
-          return response.json();
+    const userIdElem = document.getElementById('user-id');
+    const sendStatus = document.getElementById('send-status');
+    const tbody = document.getElementById('location-table-body');
+
+    const myUserId = userIdElem.textContent;
+
+    // 자신의 위치를 서버에 전송
+    function sendMyLocation() {
+      if (!navigator.geolocation) {
+        sendStatus.textContent = 'GPS 미지원 브라우저';
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(pos => {
+        fetch('/update_location', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          })
         })
+        .then(res => res.json())
         .then(data => {
-          document.getElementById('location').textContent =
-            `운전자의 위치 - 위도: ${data.lat.toFixed(6)}, 경도: ${data.lng.toFixed(6)}`;
+          if (data.status === 'Location updated') {
+            sendStatus.textContent = `전송 완료: 위도=${pos.coords.latitude.toFixed(6)}, 경도=${pos.coords.longitude.toFixed(6)}`;
+          } else {
+            sendStatus.textContent = '서버 응답 이상';
+          }
         })
-        .catch(err => {
-          document.getElementById('location').textContent = '위치 정보를 찾을 수 없습니다.';
+        .catch(() => {
+          sendStatus.textContent = '서버 전송 실패';
+        });
+      }, err => {
+        sendStatus.textContent = '위치 권한 필요 또는 오류';
+      });
+    }
+
+    // 모든 운전자 위치 받아서 테이블에 표시
+    function loadAllLocations() {
+      fetch('/get_all_locations')
+        .then(res => res.json())
+        .then(data => {
+          tbody.innerHTML = '';
+          const userIds = Object.keys(data);
+          if (userIds.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3">기록된 위치 데이터가 없습니다.</td></tr>';
+            return;
+          }
+          userIds.forEach(userId => {
+            const loc = data[userId];
+            const tr = document.createElement('tr');
+            // 강조 표시 : 자신의 아이디는 굵은 글씨로 보여줌
+            tr.innerHTML = `<td${userId === myUserId ? ' style="font-weight:bold; color:blue;"' : ''}>${userId}</td><td>${loc.lat.toFixed(6)}</td><td>${loc.lng.toFixed(6)}</td>`;
+            tbody.appendChild(tr);
+          });
+        })
+        .catch(() => {
+          tbody.innerHTML = '<tr><td colspan="3">위치 데이터를 불러올 수 없습니다.</td></tr>';
         });
     }
 
-    fetchDriverLocation();
-    setInterval(fetchDriverLocation, 5000); // 5초마다 갱신
+    // 초기 호출 및 주기적 실행
+    sendMyLocation();
+    loadAllLocations();
+    setInterval(sendMyLocation, 5000);
+    setInterval(loadAllLocations, 5000);
+
   </script>
 </body>
 </html>
